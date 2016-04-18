@@ -104,16 +104,16 @@ let print_model m =
 let rec sat_solver f m =
   print_model m;
   if satisfied_by_model f m then
-		print_endline "SAT"
+    print_endline "SAT"
   else if unsatisfiable_by_model f m && no_decision_litteral m then
-		print_endline "UNSAT"
+    print_endline "UNSAT"
   else if unsatisfiable_by_model f m then
-		sat_solver f (switch_first_decision_var m)
-	else begin
-	  match find_unit_clause f m with
+    sat_solver f (switch_first_decision_var m)
+  else begin
+    match find_unit_clause f m with
     |None -> sat_solver f ({var = (find_litteral_undefined f m); inferred = false}::m)
     |Some (l,c) -> sat_solver f ({var = l; inferred = true}::m)
-	end
+  end
 ;;
       
 let () =

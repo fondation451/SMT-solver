@@ -12,7 +12,7 @@
 
 %start file
 
-%type <Ma_spec.file> file
+%type <Ma_spec.ast_file> file
 
 %%
 

@@ -12,6 +12,78 @@ exception Unit_clause_found of litteral * clause;;
 
 exception Undefined_litteral_found of litteral;;
 
+(**************************)
+
+(* Find the Backjump clause using a resolution *)
+
+exception Undefined_behaviour;;
+
+let get_decision_level m =
+  let rec aux m out =
+    match m with
+    |[] -> out
+    |head::tail ->
+      if head.inferred then
+        aux tail (head.var::out)
+      else
+        out
+  in
+  aux m []
+;;
+
+let count_decision_litteral c decision_litteral =
+  List.fold_left
+    (fun tmp l ->
+      if List.exists (fun tmp_l -> tmp_l.id = l.id) decision_litteral then
+        tmp + 1
+      else
+        tmp
+      ) 0 c
+;;
+
+let remove_litteral_from_clause l c =
+  let rec aux c out =
+    match c with
+    |[] -> out
+    |head::tail ->
+      if head.id = l.id then
+        List.rev_append out tail
+      else
+        aux tail (head::out)
+  in
+  aux c []
+;;
+
+let rec find_clause_resolve l f =
+  match f with
+  |[] -> None
+  |head::tail ->
+    if List.exists (fun c_l -> l.id = c_l.id && l.negation = not c_l.negation) head then
+      Some (remove_litteral_from_clause l head)
+    else
+      find_clause_resolve l tail
+;;
+
+let find_backjump_clause f m cc = 
+  let decision_litteral = get_decision_level m in
+  let rec aux cc =
+    if count_decision_litteral cc decision_litteral < 2 then
+      cc
+    else begin
+      match cc with
+      |[] -> raise Undefined_behaviour
+      |head::tail -> begin
+        match find_clause_resolve head f with
+        |Some(c) -> aux (List.rev_append (List.rev tail) c)
+        |_ -> raise Undefined_behaviour
+      end
+    end
+  in
+  aux cc
+;;
+
+(**************************)
+
 let rec is_defined_in_model lit m =
   match m with
   |[] -> false
@@ -115,7 +187,6 @@ let print_model m =
   aux m;
   print_newline ()
 ;;
-  
 
 let rec sat_solver f m =
   print_model m;
@@ -131,7 +202,7 @@ let rec sat_solver f m =
     |Some (l,c) -> sat_solver f ({var = l; inferred = true}::m)
   end
 ;;
-      
+
 let () =
   let l0 = {id = 0; negation = false} in
   let l1 = {id = 1; negation = false} in

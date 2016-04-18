@@ -1,14 +1,14 @@
 (* Type de Syntaxe abstraite *)
 
-type file = {
+type ast_file = {
   nbV : int;
   nbC : int;
   clause_l : clause list;
 }
 
-and clause = litteral list
+and ast_clause = litteral list
 
-and litteral =
+and ast_litteral =
   |Equal of int * int
   |Different of int * int
 ;;

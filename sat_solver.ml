@@ -1,103 +1,119 @@
-type litteral = {id : int; negation : bool}
+type litteral = {id : int; negation : bool};;
 
-type clause = litteral list
+type clause = litteral list;;
 
-type cnf = clause list
+type cnf = clause list;;
 
-type model_var = {var : litteral; inferred : bool}
+type model_var = {var : litteral; inferred : bool};;
 
-type model = model_var list
+type model = model_var list;;
 
-exception Unit_clause_found of litteral * clause
+exception Unit_clause_found of litteral * clause;;
 
-exception Undefined_litteral_found of litteral
+exception Undefined_litteral_found of litteral;;
 
 let rec is_defined_in_model lit m =
   match m with
-  | [] -> false
-  | l::ls -> if l.var.id = lit.id then true 
-             else is_defined_in_model lit ls
+  |[] -> false
+  |l::ls ->
+    if l.var.id = lit.id then
+      true
+    else is_defined_in_model lit ls
+;;
 
 let rec no_decision_litteral m =
   match m with
-  | [] -> true
-  | l::ls -> l.inferred && (no_decision_litteral ls)
+  |[] -> true
+  |l::ls -> l.inferred && (no_decision_litteral ls)
+;;
 
 let rec value_of_litteral_in_model l m =
   match m with
-  | [] -> None
-  | lm::ls -> if lm.var.id = l.id && lm.var.negation = l.negation
-              then Some true
-              else if lm.var.id = l.id
-              then Some false
-              else value_of_litteral_in_model l ls
-  
+  |[] -> None
+  |lm::ls ->
+    if lm.var.id = l.id && lm.var.negation = l.negation then
+      Some true
+    else if lm.var.id = l.id then
+      Some false
+    else value_of_litteral_in_model l ls
+;;
+
 let satisfied_by_model f m =
   let litteral_true l =
     match value_of_litteral_in_model l m with
-    | Some true -> true
-    | _ -> false
+    |Some true -> true
+    |_ -> false
   in
   List.for_all (List.exists litteral_true) f
+;;
 
 let unsatisfiable_by_model f m =
   let litteral_false l =
     match value_of_litteral_in_model l m with
-    | Some false -> true
-    | _ -> false
+    |Some false -> true
+    |_ -> false
   in
   List.exists (List.for_all litteral_false) f
+;;
 
 let negate_litteral l =
   {id = l.id; negation = not l.negation}
- 
+;;
+
 let rec negate_clause c =
   match c with
-  | [] -> []
-  | l::ls -> [negate_litteral l]::(negate_clause ls)
-  
+  |[] -> []
+  |l::ls -> [negate_litteral l]::(negate_clause ls)
+;;
 
 let gen_potential_unit_clause c =
   let rec aux u v =
     match v with
-    | [] -> []
-    | l::ls -> (l,u@ls)::(aux (l::u) ls)
+    |[] -> []
+    |l::ls -> (l,u@ls)::(aux (l::u) ls)
   in
   aux [] c
+;;
     
 let find_unit_clause f m =
   try
     List.iter (fun (l,c) -> if not(is_defined_in_model l m)
-                            && satisfied_by_model (negate_clause c) m
-                            then raise (Unit_clause_found (l,c)))
+                               && satisfied_by_model (negate_clause c) m then
+                              raise (Unit_clause_found (l,c)))
               (List.concat (List.map gen_potential_unit_clause f));
     None
   with Unit_clause_found (l,c) -> Some (l,c)
+;;
 
 let find_litteral_undefined f m =
-  try 
+  try
     List.iter (fun c -> List.iter (fun l -> if not (is_defined_in_model l m) then raise (Undefined_litteral_found l)) c) f;
     assert false
   with Undefined_litteral_found l -> l
-  
+;;
+
 let rec switch_first_decision_var m =
   match m with
-  | [] -> []
-  | l::ls -> if l.inferred then switch_first_decision_var ls
-             else {var = negate_litteral l.var; inferred = true}::ls
+  |[] -> []
+  |l::ls ->
+    if l.inferred then
+      switch_first_decision_var ls
+    else
+      {var = negate_litteral l.var; inferred = true}::ls
+;;
 
 let print_model m =
   let rec aux m =
     match m with
     |[] -> ()
     |l::ls ->
-			if l.var.negation = true then print_string "n";
+      if l.var.negation = true then print_string "n";
       print_int l.var.id;
-			print_string " ";
-			aux ls
+      print_string " ";
+      aux ls
   in
   aux m;
-	print_newline ()
+  print_newline ()
 ;;
   
 

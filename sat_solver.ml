@@ -110,7 +110,7 @@ let rec sat_solver f m =
   else if unsatisfiable_by_model f m then
 		sat_solver f (switch_first_decision_var m)
 	else begin
-		match find_unit_clause f m with
+	  match find_unit_clause f m with
     |None -> sat_solver f ({var = (find_litteral_undefined f m); inferred = false}::m)
     |Some (l,c) -> sat_solver f ({var = l; inferred = true}::m)
 	end

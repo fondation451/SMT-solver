@@ -1,3 +1,6 @@
+open Printf;;
+open Scanf;;
+
 type litteral = {id : int; negation : bool};;
 
 type clause = litteral list;;
@@ -13,76 +16,66 @@ exception Unit_clause_found of litteral * clause;;
 exception Undefined_litteral_found of litteral;;
 
 (**************************)
+(* Printing functions *)
 
-(* Find the Backjump clause using a resolution *)
+let print_litteral l =
+  if l.negation then
+    printf "n";
+  printf "%d" l.id
+;;
 
-exception Undefined_behaviour;;
+let rec print_clause cl =
+  match cl with
+  |[] -> ()
+  |head::[] -> print_litteral head
+  |head::tail ->
+    print_litteral head;
+    printf " \\/ ";
+    print_clause tail
+;;
 
-let get_decision_level m =
-  let rec aux m out =
+let rec print_CNF f =
+  match f with
+  |[] -> ()
+  |head::[] ->
+    printf "(";
+    print_clause head;
+    printf ")"
+  |head::tail ->
+    printf "(";
+    print_clause head;
+    printf ") /\\ ";
+    print_CNF tail
+;;
+
+let print_model m =
+  let rec aux m =
     match m with
-    |[] -> out
-    |head::tail ->
-      if head.inferred then
-        aux tail (head.var::out)
-      else
-        out
+    |[] -> ()
+    |l::ls ->
+      if l.var.negation = true then print_string "n";
+      print_int l.var.id;
+      if l.inferred = false then print_string "@";
+      print_string " ";
+      aux ls
   in
-  aux m []
+  aux m;
+  print_newline ()
 ;;
+(**************************)
 
-let count_decision_litteral c decision_litteral =
-  List.fold_left
-    (fun tmp l ->
-      if List.exists (fun tmp_l -> tmp_l.id = l.id) decision_litteral then
-        tmp + 1
-      else
-        tmp
-      ) 0 c
-;;
-
-let remove_litteral_from_clause l c =
+let remove_litteral l c =
   let rec aux c out =
     match c with
-    |[] -> out
+    |[] -> List.rev out
     |head::tail ->
-      if head.id = l.id then
-        List.rev_append out tail
+      if head = l then
+        aux tail out
       else
         aux tail (head::out)
   in
   aux c []
 ;;
-
-let rec find_clause_resolve l f =
-  match f with
-  |[] -> None
-  |head::tail ->
-    if List.exists (fun c_l -> l.id = c_l.id && l.negation = not c_l.negation) head then
-      Some (remove_litteral_from_clause l head)
-    else
-      find_clause_resolve l tail
-;;
-
-let find_backjump_clause f m cc = 
-  let decision_litteral = get_decision_level m in
-  let rec aux cc =
-    if count_decision_litteral cc decision_litteral < 2 then
-      cc
-    else begin
-      match cc with
-      |[] -> raise Undefined_behaviour
-      |head::tail -> begin
-        match find_clause_resolve head f with
-        |Some(c) -> aux (List.rev_append (List.rev tail) c)
-        |_ -> raise Undefined_behaviour
-      end
-    end
-  in
-  aux cc
-;;
-
-(**************************)
 
 let rec is_defined_in_model lit m =
   match m with
@@ -161,7 +154,7 @@ let find_litteral_undefined f m =
   try
     List.iter (fun c -> List.iter (fun l -> if not (is_defined_in_model l m) then raise (Undefined_litteral_found l)) c) f;
     assert false
-  with Undefined_litteral_found l -> l
+  with Undefined_litteral_found l -> {id = l.id; negation = false}
 ;;
 
 let rec switch_first_decision_var m =
@@ -174,34 +167,261 @@ let rec switch_first_decision_var m =
       {var = negate_litteral l.var; inferred = true}::ls
 ;;
 
-let print_model m =
-  let rec aux m =
-    match m with
-    |[] -> ()
-    |l::ls ->
-      if l.var.negation = true then print_string "n";
-      print_int l.var.id;
-      print_string " ";
-      aux ls
-  in
-  aux m;
-  print_newline ()
-;;
-
-let rec sat_solver f m =
+let rec sat_solver_backtrack f m =
   print_model m;
   if satisfied_by_model f m then
     print_endline "SAT"
   else if unsatisfiable_by_model f m && no_decision_litteral m then
     print_endline "UNSAT"
   else if unsatisfiable_by_model f m then
-    sat_solver f (switch_first_decision_var m)
+    sat_solver_backtrack f (switch_first_decision_var m)
   else begin
     match find_unit_clause f m with
-    |None -> sat_solver f ({var = (find_litteral_undefined f m); inferred = false}::m)
-    |Some (l,c) -> sat_solver f ({var = l; inferred = true}::m)
+    |None -> sat_solver_backtrack f ({var = (find_litteral_undefined f m); inferred = false}::m)
+    |Some (l,c) -> sat_solver_backtrack f ({var = l; inferred = true}::m)
   end
 ;;
+
+(**************************)
+
+(* Find the Backjump clause using a resolution *)
+
+exception Undefined_behaviour;;
+
+let get_decision_level m =
+  let rec aux m out =
+    match m with
+    |[] -> out
+    |head::tail ->
+      if head.inferred then
+        aux tail (head.var::out)
+      else
+        (head.var::out)
+  in
+  aux m []
+;;
+
+let count_decision_litteral c decision_litteral =
+  List.fold_left
+    (fun tmp l ->
+      if List.exists (fun tmp_l -> tmp_l.id = l.id) decision_litteral then
+        tmp + 1
+      else
+        tmp
+      ) 0 c
+;;
+
+let reorder_backjump_clause c decision_litteral =
+  let rec aux c out =
+    match c with
+    |[] -> out
+    |head::tail ->
+      if List.exists (fun l -> l.id = head.id) decision_litteral then
+        head::(List.rev_append tail out)
+      else
+        aux tail (head::out)
+  in
+  aux c []
+;;
+
+let remove_litteral_from_clause l c =
+  let rec aux c out =
+    match c with
+    |[] -> out
+    |head::tail ->
+      if head.id = l.id then
+        List.rev_append out tail
+      else
+        aux tail (head::out)
+  in
+  aux c []
+;;
+
+let rec find_clause_resolve l f =
+  match f with
+  |[] -> None
+  |head::tail ->
+    if List.exists (fun c_l -> l.id = c_l.id && l.negation = not c_l.negation) head then
+      Some (remove_litteral_from_clause l head)
+    else
+      find_clause_resolve l tail
+;;
+
+let sort_clause cc m =
+  let rec pos l m out =
+    match m with
+    |[] -> -1
+    |head::tail ->
+      if head.var.id = l.id then
+        out
+      else
+        pos l tail (out+1)
+  in
+  fst (List.split (List.sort (fun x y -> compare (snd x) (snd y)) (List.map (fun l -> (l, pos l m 0)) cc)))
+;;
+
+let append_litterals l1 l2 m =
+  let rec aux l1 l2 out =
+    match l2 with
+    |[] -> l1, out
+    |head::tail ->
+      if List.mem head l1 then
+        aux l1 tail out
+      else if List.mem {id = head.id; negation = not head.negation} l1 then
+        aux (remove_litteral {id = head.id; negation = not head.negation} l1) tail out
+        (*else if List.exists (fun l -> l.var.id = head.id) m then
+        aux tail (head::out)*)
+      else
+        aux l1 tail out
+  in
+  let new_l1, new_l2 = aux l1 l2 [] in
+  List.rev_append (List.rev l1) new_l2
+;;
+
+let find_backjump_clause f m cc = 
+  let decision_litteral = get_decision_level m in
+  (* print_clause decision_litteral; print_newline (); *)
+  let rec aux cc =
+    (* print_clause cc; print_newline (); *)
+    if count_decision_litteral cc decision_litteral < 2 (* && List.for_all (fun l -> is_defined_in_model l m) cc *) then
+      (* (printf "FIN\n"; *)
+      reorder_backjump_clause cc decision_litteral
+    else begin
+      match cc with
+      |[] -> raise Undefined_behaviour
+      |head::tail -> begin
+        match find_clause_resolve head f with
+        |Some(c) -> aux (append_litterals tail c m)
+        |_ -> aux (List.rev_append (List.rev tail) [head])
+      end
+    end
+  in
+  aux (sort_clause cc m)
+;;
+
+(**************************)
+
+(**************************)
+(* SAT solver with backjump *)
+
+(* let unsatisfiable_by_model_bis c m =
+  let tmp = List.map (fun l -> value_of_litteral_in_model l m) c in
+  if List.for_all (fun x -> x = Some(false)) tmp then
+    true
+  else
+    false
+;; *)
+
+let unsatisfiable_by_model_backjump f m =
+  let litteral_false l =
+    match value_of_litteral_in_model l m with
+    |Some false -> true
+    |_ -> false
+  in
+  let rec aux f =
+    match f with
+    |[] -> None
+    |head::tail ->
+      if List.for_all litteral_false head then
+        Some(head)
+      else
+        aux tail
+  in
+  aux f
+;;
+
+let find_submodel_backjump c m =
+  let rec go_to_next_decision m out =
+    match m with
+    |[] -> ([], out)
+    |head::tail ->
+      if head.inferred then
+        go_to_next_decision tail (head::out)
+      else
+        (m, out)
+  in
+  let rec aux m out =
+    (* printf "M1::l = \n";
+    print_model m;
+    printf "M2 = \n";
+    print_model out; *)
+    if unsatisfiable_by_model [c] out then
+      Some(out)
+    else begin
+      match m with
+      |[] -> None
+      |_ ->
+        let new_m, new_out = go_to_next_decision (List.tl m) ((List.hd m)::out) in
+        aux new_m new_out
+    end
+  in
+  (* printf "Debut de la recherche du nouveau modele !\n"; *)
+  let init_m, init_out = go_to_next_decision (List.rev m) [] in
+  if init_m = [] then
+    None
+  else 
+    aux init_m init_out
+;;
+
+let rec sat_solver_backjump f m =
+  print_model m;
+  if satisfied_by_model f m then
+    print_endline "SAT"
+  else begin
+    match unsatisfiable_by_model_backjump f m with
+    |Some(conflict_clause) -> begin
+        (* printf "Backjump !!!\n";
+        printf "Conflict clause : ";
+        print_CNF [conflict_clause]; print_newline (); printf "-------\n"; *)
+        let backjump_clause = find_backjump_clause f m conflict_clause in
+        (* printf "fin Backjump !!!\n";
+        printf "Backjump clause : ";
+        print_CNF [backjump_clause]; print_newline (); printf "-------\n"; *)
+        let new_litteral = List.hd backjump_clause in
+        let new_conflict = List.tl backjump_clause in
+        (* printf "Nouveau conflit : ";
+        print_CNF [new_conflict]; print_newline (); printf "-------\n"; *)
+        match find_submodel_backjump new_conflict m with
+        |None -> print_endline "UNSAT"
+        |Some(new_model) -> sat_solver_backjump f ({var = new_litteral; inferred = true}::new_model)
+      end
+    |None -> begin
+      match find_unit_clause f m with
+      |None -> sat_solver_backjump f ({var = (find_litteral_undefined f m); inferred = false}::m)
+      |Some (l,c) -> sat_solver_backjump f ({var = l; inferred = true}::m)
+    end
+  end
+;;
+
+(**************************)
+
+(**************************)
+(* 3SAT CNF reader *)
+
+let read_SAT str =
+  let ci = open_in str in
+  let header = ref (input_line ci) in
+  while (!header).[0] = 'c' do
+    header := input_line ci
+  done;
+  let nb_var, nb_cl = sscanf (!header) "p cnf %d %d " (fun x y -> x, y) in
+  let out = ref [] in
+  for i = 1 to nb_cl do
+    let cl = ref [] in
+    let l = ref (fscanf ci " %d " (fun x -> x)) in
+    while !l <> 0 do
+      cl := ({id = abs !l; negation = !l < 0})::(!cl);
+      l := fscanf ci " %d " (fun x -> x)
+    done;
+    out := (!cl)::(!out)
+  done;
+  close_in ci;
+  !out
+;;
+
+(**************************)
+
+
 
 let () =
   let l0 = {id = 0; negation = false} in
@@ -259,5 +479,81 @@ let () =
    [l13n;l8n;l5n;l4n;l20n;l2;l9;l16n;l6n;l10n];
    [l6;l3n;l2n;l1;l7n;l10n;l19n;l17;l15n;l12n]
    ]
- in
-  sat_solver example []
+  in
+  let example2 =
+  [[l6; l8; l1n; l3];
+  [l7; l9n];
+  [l8; l4];
+  [l9n; l7n; l4n];
+  [l8; l1n; l7n];
+  [l3; l4];
+  [l4n; l8n; l6n];
+  [l2; l9; l3n; l4];
+  [l3n; l2; l6];
+  [l4n; l9n];
+  [l2n; l1n; l5];
+  [l4n; l2; l5n; l1];
+  [l6; l7n; l4n];
+  [l7n; l1n];
+  [l6; l8n]]
+  in
+  
+  (*sat_solver_backtrack example [];
+  let f = [[l9n;l6n;l7;l8n];[l8;l7;l5n];[l6n;l8;l4];[l4n;l1n];[l4n;l5;l2];[l5;l7;l3n];[l1;l2n;l3]] in
+  let m = [{var = l3n ; inferred = true};{var = l2 ; inferred = true};{var = l1n ; inferred = true};{var = l4 ; inferred = true};
+  {var = l5n ; inferred = true};{var = l8n ; inferred = true};{var = l9 ; inferred = false};{var = l4 ; inferred = true}] in
+  let cc = [l1;l2n;l3] in
+  let f = [[l1n;l2];[l3n;l4];[l5n;l6n];[l6;l5n;l2n];[l5;l7];[l5;l7n;l2n]] in
+  let m = [{var = l6n ; inferred = true};{var = l5 ; inferred = false};{var = l4 ; inferred = true};{var = l3 ; inferred = false};
+  {var = l2 ; inferred = true};{var = l1 ; inferred = false}] in
+  let cc = [l6;l5n;l2n] in
+  printf "Debut des calcul de backjump clause\n";
+  let backjump_clause = find_backjump_clause f m cc in
+  printf "Formule : ";
+  print_CNF f; print_newline ();
+  printf "Modele : ";
+  print_model m; print_newline ();
+  printf "Backjump_clause : ";
+  print_CNF [backjump_clause]; print_newline ();*)
+  let f = [[l1n;l2];[l3n;l4];[l5n;l6n];[l6;l5n;l2n];[l5;l7];[l5;l7n;l2n]] in
+(*  printf "SAT Solver with Backtrack : \n";
+  sat_solver_backtrack f [];
+  printf "\n\nSAT Solver with Backtjump : \n";
+  sat_solver_backjump f [];
+  *)
+  printf "\n\nEssaie numéro 2 !!!!!!!\n";
+  printf "SAT Solver with Backtrack : \n";
+  sat_solver_backtrack f [];
+  printf "\n\nSAT Solver with Backtjump : \n";
+  sat_solver_backjump f [];
+  
+  let example3 = read_SAT "aim/aim-50-1_6-no-1.cnf" in
+  printf "\n\nEssaie numéro 3 !!!!!!!\n";
+  (*printf "SAT Solver with Backtrack : \n";
+  sat_solver_backtrack example3 [];*)
+  printf "\n\nSAT Solver with Backtjump : \n";
+  sat_solver_backjump example3 []
+;;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

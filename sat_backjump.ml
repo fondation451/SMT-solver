@@ -382,12 +382,12 @@ let _ =
   printf "Test Negatif 100 variables : \n"; flush stdout;
   let tmp = test "test1/100_no_" false 1 8 0 in
   printf "%d/8 tests reussis\n" tmp; flush stdout;
-  (* printf "Test Positif 200 variables : \n"; flush stdout;
+  printf "Test Positif 200 variables : \n"; flush stdout;
   let tmp = test "test1/200_yes_" true 1 16 0 in
-  printf "%d/16 tests reussis\n" tmp; flush stdout; *)
-  (* printf "Test Negatif 200 variables : \n"; flush stdout;
+  printf "%d/16 tests reussis\n" tmp; flush stdout;
+  printf "Test Negatif 200 variables : \n"; flush stdout;
   let tmp = test "test1/200_no_" false 1 8 0 in
-  printf "%d/8 tests reussis\n" tmp; flush stdout; *)
+  printf "%d/8 tests reussis\n" tmp; flush stdout;
 ;;
 
 

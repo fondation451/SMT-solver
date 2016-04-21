@@ -71,7 +71,7 @@ let rec close_by_congruence memo =
 
 let rec gen_congruence memo l_eq =
   match l_eq with
-  | [] -> close_by_congruence memo
+  | [] -> set_congruence memo (close_by_congruence memo)
   | (x,y)::ls ->
       let x_code,memo' = get_code_term memo x in
       let y_code,memo'' = get_code_term memo' y in

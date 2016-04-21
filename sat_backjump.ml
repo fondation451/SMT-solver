@@ -242,7 +242,7 @@ let sort_clause cc m =
 
 let find_backjump_clause f m cc antecedent level curr_level = 
   let rec aux cc =
-    printf "Resolve clause : "; print_clause cc; print_newline ();
+    (* printf "Resolve clause : "; print_clause cc; print_newline (); *)
     if count_decision_litteral cc level curr_level < 2 (* && List.for_all (fun l -> is_defined_in_model l m) cc *) then
       (* (printf "FIN\n"; *)
       reorder_backjump_clause cc level curr_level
@@ -252,8 +252,8 @@ let find_backjump_clause f m cc antecedent level curr_level =
       |head::tail ->
         if is_infered head m then begin
           let tmp = (AnteMap.find head.id antecedent) in
-          printf "Resolve l : %d\n" head.id;
-          printf "Resolve antecedent : "; print_clause tmp; print_newline ();
+          (* printf "Resolve l : %d\n" head.id;
+          printf "Resolve antecedent : "; print_clause tmp; print_newline (); *)
           aux (merge_clause tail (AnteMap.find head.id antecedent))
         end
         else
@@ -265,7 +265,7 @@ let find_backjump_clause f m cc antecedent level curr_level =
 
 let find_submodel_backjump c m =
   (* let c = remove_useless_litteral_from c_base m_base in *)
-  printf "Clause à Non satisfaire : "; print_clause c; printf "\n";
+  (* printf "Clause à Non satisfaire : "; print_clause c; printf "\n"; *)
   let rec go_to_next_decision m out =
     match m with
     |[] -> ([], out)
@@ -276,10 +276,10 @@ let find_submodel_backjump c m =
         (m, out)
   in
   let rec aux m out curr_level =
-    printf "M1::l = \n";
+    (* printf "M1::l = \n";
     print_model m;
     printf "M2 = \n";
-    print_model out;
+    print_model out; *)
     if unsatisfiable_by_model_backjump [c] out <> None then
       curr_level, Some(out)
     else begin
@@ -300,20 +300,21 @@ let find_submodel_backjump c m =
 
 let sat_solver_backjump f =
   let rec aux f m antecedent level curr_level =
-    print_model m level;
+    (* print_model m level; *)
     if satisfied_by_model f m then
-      print_endline "SAT"
+      (* print_endline "SAT" *)
+      true
     else begin
       match unsatisfiable_by_model_backjump f m with
       |Some(conflict_clause) -> begin (* BACKJUMP *)
-          printf "Backjump !!!\n";
+          (* printf "Backjump !!!\n";
           printf "Conflict clause : ";
-          print_CNF [conflict_clause]; print_newline (); printf "-------\n";
+          print_CNF [conflict_clause]; print_newline (); printf "-------\n"; *)
           let new_litteral, new_conflict = find_backjump_clause f m conflict_clause antecedent level curr_level in
-          printf "Nouveau conflit : "; print_litteral new_litteral; printf ",   ";
-          print_CNF [new_conflict]; print_newline (); printf "-------\n";
+          (* printf "Nouveau conflit : "; print_litteral new_litteral; printf ",   ";
+          print_CNF [new_conflict]; print_newline (); printf "-------\n"; *)
           match find_submodel_backjump new_conflict m with
-          |_, None -> print_endline "UNSAT"
+          |_, None -> (* print_endline "UNSAT" *) false
           |new_curr_level, Some(new_model) ->
             aux f
                 ({var = new_litteral; inferred = true}::new_model)
@@ -327,7 +328,7 @@ let sat_solver_backjump f =
           let new_var = find_litteral_undefined f m in
           aux f ({var = new_var; inferred = false}::m) antecedent (LevelMap.add new_var.id (curr_level+1) level) (curr_level+1)
         |Some (l,c) -> (* UNIT *)
-          printf "Unit clause de %d : " l.id; print_clause c; printf "\n";
+          (* printf "Unit clause de %d : " l.id; print_clause c; printf "\n"; *)
           aux f ({var = l; inferred = true}::m) (AnteMap.add l.id c antecedent) (LevelMap.add l.id curr_level level) curr_level
       end
     end
@@ -335,114 +336,51 @@ let sat_solver_backjump f =
   aux f [] (AnteMap.empty) (LevelMap.empty) 0
 ;;
 
-
-let () =
-  let l0 = {id = 0; negation = false} in
-  let l1 = {id = 1; negation = false} in
-  let l2 = {id = 2; negation = false} in
-  let l3 = {id = 3; negation = false} in
-  let l4 = {id = 4; negation = false} in
-  let l5 = {id = 5; negation = false} in
-  let l6 = {id = 6; negation = false} in
-  let l7 = {id = 7; negation = false} in
-  let l8 = {id = 8; negation = false} in
-  let l9 = {id = 9; negation = false} in
-  let l10 = {id = 10; negation = false} in
-  let l11 = {id = 11; negation = false} in
-  let l12 = {id = 12; negation = false} in
-  let l13 = {id = 13; negation = false} in
-  let l14 = {id = 14; negation = false} in
-  let l15 = {id = 15; negation = false} in
-  let l16 = {id = 16; negation = false} in
-  let l17 = {id = 17; negation = false} in
-  let l18 = {id = 18; negation = false} in
-  let l19 = {id = 19; negation = false} in
-  let l20 = {id = 20; negation = false} in
-  let l0n = {id = 0; negation = true} in
-  let l1n = {id = 1; negation = true} in
-  let l2n = {id = 2; negation = true} in
-  let l3n = {id = 3; negation = true} in
-  let l4n = {id = 4; negation = true} in
-  let l5n = {id = 5; negation = true} in
-  let l6n = {id = 6; negation = true} in
-  let l7n = {id = 7; negation = true} in
-  let l8n = {id = 8; negation = true} in
-  let l9n = {id = 9; negation = true} in
-  let l10n = {id = 10; negation = true} in
-  let l11n = {id = 11; negation = true} in
-  let l12n = {id = 12; negation = true} in
-  let l13n = {id = 13; negation = true} in
-  let l14n = {id = 14; negation = true} in
-  let l15n = {id = 15; negation = true} in
-  let l16n = {id = 16; negation = true} in
-  let l17n = {id = 17; negation = true} in
-  let l18n = {id = 18; negation = true} in
-  let l19n = {id = 19; negation = true} in
-  let l20n = {id = 20; negation = true} in
- let example =
-   [
-     [l9n;l3;l4;l5n;l18n;l11;l1n;l10;l12;l16 ];
-   [l19n;l15n;l12n;l16;l20n;l4n;l3n;l5n;l8;l13n];
-   [l14n;l9n;l1n;l5n;l12n;l3n;l4n;l6n;l17n;l16];
-   [l8n;l1;l16;l10n;l4;l2n;l6n;l9n;l3n;l19];
-   [l2n;l9;l13;l7n;l8n;l17;l19;l4;l11n;l14];
-   [l5;l18n;l17;l19;l4;l20;l14n;l9;l2;l7];
-   [l6n;l13;l3n;l11;l4;l19;l1n;l2n;l17n;l16n];
-   [l20;l11;l7;l4n;l15;l1n;l17;l12n;l13n;l18];
-   [l13n;l8n;l5n;l4n;l20n;l2;l9;l16n;l6n;l10n];
-   [l6;l3n;l2n;l1;l7n;l10n;l19n;l17;l15n;l12n]
-   ]
-  in
-  let example2 =
-  [[l6; l8; l1n; l3];
-  [l7; l9n];
-  [l8; l4];
-  [l9n; l7n; l4n];
-  [l8; l1n; l7n];
-  [l3; l4];
-  [l4n; l8n; l6n];
-  [l2; l9; l3n; l4];
-  [l3n; l2; l6];
-  [l4n; l9n];
-  [l2n; l1n; l5];
-  [l4n; l2; l5n; l1];
-  [l6; l7n; l4n];
-  [l7n; l1n];
-  [l6; l8n]]
-  in
-  
-  (*sat_solver_backtrack example [];
-  let f = [[l9n;l6n;l7;l8n];[l8;l7;l5n];[l6n;l8;l4];[l4n;l1n];[l4n;l5;l2];[l5;l7;l3n];[l1;l2n;l3]] in
-  let m = [{var = l3n ; inferred = true};{var = l2 ; inferred = true};{var = l1n ; inferred = true};{var = l4 ; inferred = true};
-  {var = l5n ; inferred = true};{var = l8n ; inferred = true};{var = l9 ; inferred = false};{var = l4 ; inferred = true}] in
-  let cc = [l1;l2n;l3] in
-  let f = [[l1n;l2];[l3n;l4];[l5n;l6n];[l6;l5n;l2n];[l5;l7];[l5;l7n;l2n]] in
-  let m = [{var = l6n ; inferred = true};{var = l5 ; inferred = false};{var = l4 ; inferred = true};{var = l3 ; inferred = false};
-  {var = l2 ; inferred = true};{var = l1 ; inferred = false}] in
-  let cc = [l6;l5n;l2n] in
-  printf "Debut des calcul de backjump clause\n";
-  let backjump_clause = find_backjump_clause f m cc in
-  printf "Formule : ";
-  print_CNF f; print_newline ();
-  printf "Modele : ";
-  print_model m; print_newline ();
-  printf "Backjump_clause : ";
-  print_CNF [backjump_clause]; print_newline ();*)
-  let f = [[l1n;l2];[l3n;l4];[l5n;l6n];[l6;l5n;l2n];[l5;l7];[l5;l7n;l2n]] in
-(*  printf "SAT Solver with Backtrack : \n";
-  sat_solver_backtrack f [];
-  printf "\n\nSAT Solver with Backtjump : \n";
-  sat_solver_backjump f [];
-  *)
-  printf "\n\nEssaie numéro 2 !!!!!!!\n";
-  printf "\n\nSAT Solver with Backtjump : \n";
-  sat_solver_backjump f;
-  
-  let example3 = read_SAT "aim/aim-50-1_6-no-1.cnf" in
-  printf "\n\nEssaie numéro 3 !!!!!!!\n";
-  printf "\n\nSAT Solver with Backtjump : \n";
-  sat_solver_backjump example3
+let rec test str answer i fin out =
+  if i > fin then
+    out
+  else
+    let f = read_SAT (str ^ (string_of_int i) ^ ".cnf") in
+    printf "Test numero %d : " i; flush stdout;
+    if sat_solver_backjump f = answer then begin
+      printf "OK\n"; flush stdout;
+      test str answer (i+1) fin (out+1)
+    end
+    else begin
+      printf "FAIL\n"; flush stdout;
+      test str answer (i+1) fin out
+    end
 ;;
+
+let _ =
+  printf "Test Positif 50 variables : \n"; flush stdout;
+  let tmp = test "test1/50_yes_" true 1 16 0 in
+  printf "%d/16 tests reussis\n" tmp; flush stdout;
+  (* printf "Test Negatif 50 variables : \n"; flush stdout;
+  let tmp = test "test1/50_no_" false 1 8 0 in
+  printf "%d/8 tests reussis\n" tmp; flush stdout; *)
+  printf "Test Positif 100 variables : \n"; flush stdout;
+  let tmp = test "test1/100_yes_" true 1 16 0 in
+  printf "%d/16 tests reussis\n" tmp; flush stdout;
+  (* printf "Test Negatif 100 variables : \n"; flush stdout;
+  let tmp = test "test1/100_no_" false 1 8 0 in
+  printf "%d/8 tests reussis\n" tmp; flush stdout; *)
+  printf "Test Positif 200 variables : \n"; flush stdout;
+  let tmp = test "test1/200_yes_" true 1 16 0 in
+  printf "%d/16 tests reussis\n" tmp; flush stdout;
+  (* printf "Test Negatif 200 variables : \n"; flush stdout;
+  let tmp = test "test1/200_no_" false 1 8 0 in
+  printf "%d/8 tests reussis\n" tmp; flush stdout; *)
+;;
+
+(* let _ =
+  let f = read_SAT "test1/50_no_4.cnf" in
+  let answer = sat_solver_backjump f in
+  if answer then
+    printf "SAT\n"
+  else
+    printf "UNSAT\n"
+;; *)
 
 
 

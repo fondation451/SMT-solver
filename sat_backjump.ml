@@ -170,6 +170,14 @@ let find_litteral_undefined f m =
   with Undefined_litteral_found l -> {id = l.id; negation = false}
 ;;
 
+let add_clause_to_CNF backjump_clause f =
+  let equal_clause c1 c2 = List.for_all (fun x -> List.mem x c2) c1 && List.length c1 = List.length c2 in
+  if List.exists (fun x -> equal_clause backjump_clause x) f then
+    f
+  else
+    backjump_clause::f
+;;
+
 let unsatisfiable_by_model_backjump f m =
   let litteral_false l =
     match value_of_litteral_in_model l m with
@@ -311,12 +319,14 @@ let sat_solver_backjump f =
           printf "Conflict clause : ";
           print_CNF [conflict_clause]; print_newline (); printf "-------\n"; *)
           let new_litteral, new_conflict = find_backjump_clause f m conflict_clause antecedent level curr_level in
+          let backjump_clause = new_litteral::new_conflict in
+          let new_f = add_clause_to_CNF backjump_clause f in
           (* printf "Nouveau conflit : "; print_litteral new_litteral; printf ",   ";
           print_CNF [new_conflict]; print_newline (); printf "-------\n"; *)
           match find_submodel_backjump new_conflict m with
           |_, None -> (* print_endline "UNSAT" *) false
           |new_curr_level, Some(new_model) ->
-            aux f
+            aux new_f
                 ({var = new_litteral; inferred = true}::new_model)
                 (AnteMap.add new_litteral.id new_conflict antecedent)
                 (LevelMap.add new_litteral.id new_curr_level level)
@@ -356,18 +366,18 @@ let _ =
   printf "Test Positif 50 variables : \n"; flush stdout;
   let tmp = test "test1/50_yes_" true 1 16 0 in
   printf "%d/16 tests reussis\n" tmp; flush stdout;
-  (* printf "Test Negatif 50 variables : \n"; flush stdout;
+  printf "Test Negatif 50 variables : \n"; flush stdout;
   let tmp = test "test1/50_no_" false 1 8 0 in
-  printf "%d/8 tests reussis\n" tmp; flush stdout; *)
-  printf "Test Positif 100 variables : \n"; flush stdout;
+  printf "%d/8 tests reussis\n" tmp; flush stdout;
+  (* printf "Test Positif 100 variables : \n"; flush stdout;
   let tmp = test "test1/100_yes_" true 1 16 0 in
-  printf "%d/16 tests reussis\n" tmp; flush stdout;
+  printf "%d/16 tests reussis\n" tmp; flush stdout; *)
   (* printf "Test Negatif 100 variables : \n"; flush stdout;
   let tmp = test "test1/100_no_" false 1 8 0 in
   printf "%d/8 tests reussis\n" tmp; flush stdout; *)
-  printf "Test Positif 200 variables : \n"; flush stdout;
+  (* printf "Test Positif 200 variables : \n"; flush stdout;
   let tmp = test "test1/200_yes_" true 1 16 0 in
-  printf "%d/16 tests reussis\n" tmp; flush stdout;
+  printf "%d/16 tests reussis\n" tmp; flush stdout; *)
   (* printf "Test Negatif 200 variables : \n"; flush stdout;
   let tmp = test "test1/200_no_" false 1 8 0 in
   printf "%d/8 tests reussis\n" tmp; flush stdout; *)

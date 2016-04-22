@@ -53,21 +53,27 @@ let get_code_term memo t =
                              new_code
 
 let adapt_size_congruence memo l =
-  let memo' = List.fold_left (fun m (x,y) -> 
-                                let _,m' = get_code_term m x in
-                                let _,m'' = get_code_term m' y in
-                                m'') memo l in
+  let rec gen_code m t =
+    match t with
+    | Const _ -> snd (get_code_term m t)
+    | Fun (f,arg) -> List.fold_left gen_code (snd (get_code_term m t)) arg
+  in
+  let memo' = List.fold_left gen_code memo l in
   set_congruence memo' (PUF.expand memo.congruence (memo'.next_code - PUF.length memo.congruence))
 
+(*inneficient function because of copy*)
 let rec close_by_congruence memo =
   let is_congr t1 t2 =
     match t1,t2 with
-    | Const s1, Const s2 -> s1 = s2
+    | Const s1, Const s2 -> 
+        let t1_code,_ = get_code_term memo t1 in
+        let t2_code,_ = get_code_term memo t2 in
+        PUF.find (PUF.expand memo.congruence 0) t1_code = PUF.find (PUF.expand memo.congruence 0) t2_code
     | Fun (f1,arg1), Fun (f2,arg2) ->
         f1 = f2 && List.for_all (fun (tt1,tt2) -> 
                                    let tt1_code,_ = get_code_term memo tt1
                                    and tt2_code,_ = get_code_term memo tt2 in
-                                   PUF.find memo.congruence tt1_code = PUF.find memo.congruence tt2_code)
+                                   PUF.find (PUF.expand memo.congruence 0) tt1_code = PUF.find (PUF.expand memo.congruence 0) tt2_code)
                                 (List.combine arg1 arg2)
     | _,_ -> false
   in
@@ -94,7 +100,8 @@ let rec gen_congruence memo l_eq =
 
 let is_satisfiable_mod_theory memo l =
   let l_eq,l_not_eq = split_eq l in
-  let memo_adapted = adapt_size_congruence memo (l_eq@l_not_eq) in
+  let (l_eq_l,l_eq_r),(l_not_eq_l,l_not_eq_r) = List.split l_eq, List.split l_not_eq in
+  let memo_adapted = adapt_size_congruence memo (l_eq_l@l_eq_r@l_not_eq_l@l_not_eq_r) in
   let memo_res = gen_congruence memo_adapted l_eq in
   List.for_all (fun (x,y) ->
                   let x_code,_ = get_code_term memo_res x
@@ -103,5 +110,5 @@ let is_satisfiable_mod_theory memo l =
                l_not_eq
 
 let () =
-  let ex = [Eq (Const "x",Const "y")] in
+  let ex = [Eq (Const "x",Const "y"); Eq (Const "y",Const "z"); Not_eq (Fun ("f",[Const "x"]),Fun ("f",[Const "a"]))] in
   print_endline (string_of_bool (is_satisfiable_mod_theory empty_memo ex))

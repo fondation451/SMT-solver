@@ -82,6 +82,10 @@ let rec gen_congruence memo l_eq =
       else gen_congruence memo'' ls
 
 let is_satisfiable_mod_theory memo l =
-  let l_eq,l_net_eq = split_eq l in
-  let rel_congruence = gen_congruence memo l_eq in
-  assert false
+  let l_eq,l_not_eq = split_eq l in
+  let memo_res = gen_congruence memo l_eq in
+  List.for_all (fun (x,y) ->
+                  let x_code,_ = get_code_term memo_res x
+                  and y_code,_ = get_code_term memo_res y in
+                  PUF.find memo_res.congruence x_code <> PUF.find memo_res.congruence y_code)
+               l_not_eq

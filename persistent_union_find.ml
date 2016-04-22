@@ -11,6 +11,11 @@ let create n = {
   parent = Persistent_array.init n (fun i -> i)
 }
 
+let expand puf_t n = {
+  rank = Persistent_array.expand puf_t n (fun _ -> 0);
+  parent = Persistent_array.expand puf_t n (fun i -> i)
+}
+
 let rec find_aux f i =
   let fi = Persistent_array.get f i in
   if fi == i then

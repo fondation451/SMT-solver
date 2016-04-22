@@ -9,6 +9,15 @@ and 'a data =
 
 let init n f = ref (Arr (Array.init n f))
 
+let rec expand pa n f =
+  match !pa with
+  | Arr a -> ref (Arr (Array.init (Array.length a + n) 
+                                  (fun i -> if i < Array.length a 
+                                            then a.(i) else f i)))
+  | Diff (i, v, pa') -> ref (Diff (i, v, expand pa' n f))
+  | Invalid -> assert false
+  
+
 let rec reroot t = match !t with
   | Arr _ -> ()
   | Diff (i, v, t') ->

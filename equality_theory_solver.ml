@@ -31,6 +31,10 @@ let set_congruence memo congruence = {code = memo.code;
                                       next_code = memo.next_code;
                                       congruence = congruence}
 
+let empty_memo = {code = Tmap.empty;
+                  next_code = 0;
+                  congruence = PUF.create 0}
+
 let rec split_eq l =
   match l with
   | [] -> [],[]
@@ -89,3 +93,7 @@ let is_satisfiable_mod_theory memo l =
                   and y_code,_ = get_code_term memo_res y in
                   PUF.find memo_res.congruence x_code <> PUF.find memo_res.congruence y_code)
                l_not_eq
+
+let () =
+  let ex = [Eq (Const "x",Const "y")] in
+  print_endline (string_of_bool (is_satisfiable_mod_theory empty_memo ex))

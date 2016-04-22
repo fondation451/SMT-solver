@@ -9,6 +9,13 @@ and 'a data =
 
 let init n f = ref (Arr (Array.init n f))
 
+let rec length pa =
+  match !pa with
+  | Arr a -> Array.length a
+  | Diff (i, v, pa') -> length pa'
+  | Invalid -> assert false
+  
+
 let rec expand pa n f =
   match !pa with
   | Arr a -> ref (Arr (Array.init (Array.length a + n) 

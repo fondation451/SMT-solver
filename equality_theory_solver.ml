@@ -52,6 +52,13 @@ let get_code_term memo t =
     memo.next_code, set_code (set_next_code memo (memo.next_code + 1)) 
                              new_code
 
+let adapt_size_congruence memo l =
+  let memo' = List.fold_left (fun m (x,y) -> 
+                                let _,m' = get_code_term m x in
+                                let _,m'' = get_code_term m' y in
+                                m'') memo l in
+  set_congruence memo' (PUF.expand memo.congruence (memo'.next_code - PUF.length memo.congruence))
+
 let rec close_by_congruence memo =
   let is_congr t1 t2 =
     match t1,t2 with
@@ -87,7 +94,8 @@ let rec gen_congruence memo l_eq =
 
 let is_satisfiable_mod_theory memo l =
   let l_eq,l_not_eq = split_eq l in
-  let memo_res = gen_congruence memo l_eq in
+  let memo_adapted = adapt_size_congruence memo (l_eq@l_not_eq) in
+  let memo_res = gen_congruence memo_adapted l_eq in
   List.for_all (fun (x,y) ->
                   let x_code,_ = get_code_term memo_res x
                   and y_code,_ = get_code_term memo_res y in

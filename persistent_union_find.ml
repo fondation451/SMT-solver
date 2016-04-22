@@ -11,9 +11,11 @@ let create n = {
   parent = Persistent_array.init n (fun i -> i)
 }
 
+let length puf_t = Persistent_array.length puf_t.rank
+
 let expand puf_t n = {
-  rank = Persistent_array.expand puf_t n (fun _ -> 0);
-  parent = Persistent_array.expand puf_t n (fun i -> i)
+  rank = Persistent_array.expand puf_t.rank n (fun _ -> 0);
+  parent = Persistent_array.expand puf_t.parent n (fun i -> i)
 }
 
 let rec find_aux f i =

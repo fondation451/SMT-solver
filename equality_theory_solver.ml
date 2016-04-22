@@ -99,7 +99,7 @@ let rec gen_congruence memo l_eq =
       else gen_congruence memo'' ls
 
 (*return if l is a set of equality/not_equality which is satisfiable modulo the theory of equality*)
-(*it returns a data structure which will accelerate calculus if the function is recall with an superset of l*)
+(*it returns a data structure which will accelerate calculus if the function is recall with a superset of l*)
 (*the data structure is persistent so it could be used with backtracking*)
 let is_satisfiable_mod_theory memo l =
   let l_eq,l_not_eq = split_eq l in
@@ -114,4 +114,4 @@ let is_satisfiable_mod_theory memo l =
 
 let () =
   let ex = [Eq (Const "x",Const "y"); Eq (Const "y",Const "z"); Not_eq (Fun ("f",[Const "x"]),Fun ("f",[Const "a"]))] in
-  print_endline (string_of_bool (is_satisfiable_mod_theory empty_memo ex))
+  print_endline (string_of_bool (fst (is_satisfiable_mod_theory empty_memo ex)))

@@ -1,5 +1,5 @@
 %{
-  open Ma_spec
+  open Ast;;
   
   exception Mon_Erreur;;  
 %}
@@ -12,7 +12,7 @@
 
 %start file
 
-%type <Ma_spec.ast_file> file
+%type <Ast.ast_file> file
 
 %%
 

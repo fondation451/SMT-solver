@@ -1,6 +1,6 @@
 {
-  open Ma_spec
-  open Mon_parser
+  open Ast
+  open Parser
   open Lexing
   
   exception Lexical_error of string;;

@@ -1,49 +1,66 @@
 type term =
-  | Const of string
-  | Fun of string * term list
+  |Const of string
+  |Fun of string * term list
+;;
 
 type atomic_formula =
-  | Eq of term * term
-  | Not_eq of term * term
+  |Eq of term * term
+  |Not_eq of term * term
+;;
 
-module Ordered_term = struct
-  type t = term
+module Tmap =
+  Map.Make(struct
+    type t = term
   let compare = compare
-end
+  end)
+;;
 
-module Tmap = Map.Make(Ordered_term)
+module PUF = Persistent_union_find;;
 
-module PUF = Persistent_union_find
+type memo = {
+  code : int Tmap.t;
+  next_code : int;
+  congruence : Persistent_union_find.t
+};;
 
-type memo = {code : int Tmap.t; 
-             next_code : int;
-             congruence : Persistent_union_find.t}
+let set_code memo code =
+  {code = code;
+  next_code = memo.next_code;
+  congruence = memo.congruence}
+;;
 
-let set_code memo code = {code = code;
-                          next_code = memo.next_code;
-                          congruence = memo.congruence}
+let set_next_code memo next_code =
+  {code = memo.code;
+  next_code = next_code;
+  congruence = memo.congruence}
+;;
 
-let set_next_code memo next_code = {code = memo.code;
-                                    next_code = next_code;
-                                    congruence = memo.congruence}
+let set_congruence memo congruence =
+  {code = memo.code;
+  next_code = memo.next_code;
+  congruence = congruence}
+;;
 
-let set_congruence memo congruence = {code = memo.code;
-                                      next_code = memo.next_code;
-                                      congruence = congruence}
+let empty_memo =
+  {code = Tmap.empty;
+  next_code = 0;
+  congruence = PUF.create 0}
+;;
 
-let empty_memo = {code = Tmap.empty;
-                  next_code = 0;
-                  congruence = PUF.create 0}
-
-let rec split_eq l =
-  match l with
-  | [] -> [],[]
-  | t::ls ->
+let split_eq l =
+  let rec aux l out_eq out_not_eq =
+    match l with
+    |[] -> out_eq, out_not_eq
+    |t::ls -> begin
       let l_eq,l_not_eq = split_eq ls in
-      begin match t with
-      | Eq (x,y) -> (x,y)::l_eq,l_not_eq
-      | Not_eq (x,y) -> l_eq,(x,y)::l_not_eq
-      end
+      match t with
+      |Eq (x,y) -> aux ls ((x, y)::out_eq) out_not_eq
+      |Not_eq (x,y) -> aux ls out_eq ((x, y)::out_not_eq)
+    end
+  in
+  aux l [] []
+;;
+
       
 let get_code_term memo t =
   if Tmap.mem t memo.code then Tmap.find t memo.code,memo
@@ -55,8 +72,8 @@ let get_code_term memo t =
 let adapt_size_congruence memo l =
   let rec gen_code m t =
     match t with
-    | Const _ -> snd (get_code_term m t)
-    | Fun (f,arg) -> List.fold_left gen_code (snd (get_code_term m t)) arg
+    |Const _ -> snd (get_code_term m t)
+    |Fun(f, arg) -> List.fold_left gen_code (snd (get_code_term m t)) arg
   in
   let memo' = List.fold_left gen_code memo l in
   set_congruence memo' (PUF.expand memo.congruence (memo'.next_code - PUF.length memo.congruence))

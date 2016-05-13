@@ -478,47 +478,6 @@ let _ =
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 (* let rec test str answer i fin out =
   if i > fin then
     out
@@ -555,25 +514,5 @@ let _ =
   let tmp = test "test1/200_no_" false 1 8 0 in
   printf "%d/8 tests reussis\n" tmp; flush stdout;
 ;; *)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 

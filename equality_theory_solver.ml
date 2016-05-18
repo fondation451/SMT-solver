@@ -112,7 +112,7 @@ let find_equality_of_conflict memo rep l_eq =
     |(x, y)::tail ->
       let x_code,_ = get_code_term memo x in
       if PUF.find memo.congruence x_code = rep then
-        aux tail ((Eq(x, y))::out)
+        aux tail ((Not_eq(x, y))::out)
       else
         aux tail out
   in
@@ -129,7 +129,7 @@ let is_satisfiable_mod_theory memo l =
   |Some((x, y)) ->
     let x_code,_ = get_code_term memo_res x in
     let l_eq_conflict = find_equality_of_conflict memo_res (PUF.find memo_res.congruence x_code) l_eq in
-    false, memo_res, ((Not_eq(x, y))::l_eq_conflict)
+    false, memo_res, ((Eq(x, y))::l_eq_conflict)
 ;;
 
 

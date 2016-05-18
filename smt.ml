@@ -219,21 +219,19 @@ let rec is_defined_in_model lit m =
 ;;
 
 let rec value_of_litteral_in_model l m =
-  match m with
-  |[] -> None
-  |lm::ls ->
-    if lm.var.id = l.id && lm.var.negation = l.negation then
-      Some true
-    else if lm.var.id = l.id then
-      Some false
-    else value_of_litteral_in_model l ls
+  if Hashtbl.mem m l.id then Hashtbl.find m l.id else None
 ;;
 
 let satisfied_by_model f m =
+  let hash_m = Hashtbl.create 100 in
+  List.iter (fun x -> Hashtbl.add hash_m x.var.id (not x.var.negation) ) m;
   let litteral_true l =
-    match value_of_litteral_in_model l m with
-    |Some true -> true
-    |_ -> false
+    if Hashtbl.mem hash_m l.id then 
+      begin
+        if l.negation then not (Hashtbl.find hash_m l.id)
+                      else Hashtbl.find hash_m l.id
+        end
+    else false
   in
   List.for_all (List.exists litteral_true) f
 ;;
@@ -280,10 +278,15 @@ let add_clause_to_CNF backjump_clause f =
 ;;
 
 let unsatisfiable_by_model f m =
+  let hash_m = Hashtbl.create 100 in
+  List.iter (fun x -> Hashtbl.add hash_m x.var.id (not x.var.negation) ) m;
   let litteral_false l =
-    match value_of_litteral_in_model l m with
-    |Some false -> true
-    |_ -> false
+    if Hashtbl.mem hash_m l.id then 
+      begin
+        if l.negation then Hashtbl.find hash_m l.id
+                      else not (Hashtbl.find hash_m l.id)
+        end
+    else false
   in
   let rec aux f =
     match f with
@@ -407,7 +410,10 @@ let smt_solver f =
   let rec aux f m antecedent level curr_level =
     if satisfied_by_model f m then begin
       let m_theory = model_to_theory m tab_id in
+      let t = Sys.time () in
       let ans, memo, conflict_theory = is_satisfiable_mod_theory empty_memo m_theory in
+      let u = Sys.time () in
+      Printf.printf "Execution time: %fs\n" (Sys.time() -. t); print_newline ();
       if ans then
         true
       else begin

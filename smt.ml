@@ -128,7 +128,7 @@ let order_ast f =
       |Different(x, y) -> aux tail ((if x < y then Not_eq(x, y) else Not_eq(y, x))::out)
     end
   in
-  List.map (fun c -> aux c []) f.clause_l
+  List.filter (fun l -> l <> []) (List.map (fun c -> aux c []) f.clause_l) (*hack to solve the problem of the parser*)
 ;;
 
 let rec tab_find tab x i =
@@ -190,9 +190,9 @@ let nb_var_CNF f =
     match f with
     |[] -> out
     |head::tail ->
-      let tmp = List.hd (List.sort (fun x y -> compare y.id x.id) head) in
-      if tmp.id > out then
-        aux tail tmp.id
+      let tmp = List.fold_left max (-1) (List.map (fun x -> x.id ) head) in
+      if tmp > out then
+        aux tail tmp
       else
         aux tail out
   in

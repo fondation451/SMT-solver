@@ -41,10 +41,10 @@ let () =
       eprintf "Erreur Lexical@.";
       Printf.printf "%s\n" str;
       exit 2
-    |Parser.Error ->
-      eprintf "Erreur syntaxique@.";
-      exit 2
-    |_ -> exit 3
+    (*|Parser.Error ->*)
+      (*eprintf "Erreur syntaxique@.";*)
+      (*exit 2*)
+    (*|_ -> exit 3*)
 ;;
 
 

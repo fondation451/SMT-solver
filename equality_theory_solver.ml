@@ -57,10 +57,6 @@ let split_eq l =
   aux l [] []
 ;;
 
-(* let insert_term memo t =
-  set_code memo (Tset.add t memo.code)
-;; *)
-
 let get_code_term memo t =
   if Tmap.mem t memo.code then
     Tmap.find t memo.code, memo
@@ -68,12 +64,6 @@ let get_code_term memo t =
     let new_code = Tmap.add t memo.next_code memo.code in
     memo.next_code, set_code (set_next_code memo (memo.next_code + 1)) new_code
 ;;
-
-(* let adapt_size_congruence memo l =
-  let memo' = List.fold_left (fun m t -> insert_term m t) memo l in
-  printf "taille = %d\n" ((Tset.cardinal memo'.code + 1) - PUF.length memo.congruence);
-  set_congruence memo' (PUF.expand memo.congruence ((Tset.cardinal memo'.code + 1) - PUF.length memo.congruence))
-;; *)
 
 let adapt_size_congruence memo l =
   let rec gen_code m t = snd (get_code_term m t) in

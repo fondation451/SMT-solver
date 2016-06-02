@@ -1,8 +1,3 @@
-
-
-#all: spec type parser_inter parser_compil lexer_compil x86_64_inter x86_64 compile main
-#	ocamlc -annot -g -o pscala nums.cma scala_spec.cmo scala_type.cmo scala_lexer.cmo scala_parser.cmo x86_64.cmo scala_compile.cmo main.cmo
-
 all: smt main
 	ocamlc -annot -g -o smt_solver persistent_array.cmo persistent_union_find.cmo ast.cmo smt.cmo lexer.cmo parser.cmo main.cmo
 
